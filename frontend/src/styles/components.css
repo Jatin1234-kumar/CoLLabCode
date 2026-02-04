@@ -51,6 +51,26 @@
   padding-top: 8px;
   color: #666;
   font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.delete-room-btn {
+  padding: 4px 8px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer !important;
+  font-size: 11px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.delete-room-btn:hover {
+  background: #dc2626;
 }
 
 .modal-overlay {
@@ -374,6 +394,28 @@
 
 .restore-btn:hover {
   background: #059669;
+}
+
+.delete-btn {
+  padding: 4px 8px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer !important;
+  font-size: 11px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.delete-btn:hover {
+  background: #dc2626;
+}
+
+.version-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .empty-versions {

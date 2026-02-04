@@ -115,8 +115,6 @@ export const setupSocketHandlers = (io, socket) => {
       const { roomId, code, timestamp } = data;
       const userId = socket.userId.toString();
 
-      console.log('code:update received:', { roomId, codeLength: code?.length, timestamp });
-
       if (!roomId || code === undefined) {
         return safeCallback(
           callback,
@@ -163,8 +161,6 @@ export const setupSocketHandlers = (io, socket) => {
 
       room.code = code;
       room.lastModified = new Date(timestamp || Date.now());
-
-      console.log('Updated room code:', { roomId, codeLength: room.code?.length });
 
       if (roomDebounceTimers.has(roomId)) {
         clearTimeout(roomDebounceTimers.get(roomId));
@@ -269,8 +265,6 @@ export const setupSocketHandlers = (io, socket) => {
       // Ensure code is a string and save room first (in case of pending debounced saves)
       const codeToSave = room.code && typeof room.code === 'string' ? room.code : '';
       
-      console.log('Saving version:', { roomId, codeLength: codeToSave.length, codePreview: codeToSave.substring(0, 50) });
-      
       // Flush any pending debounced save
       if (roomDebounceTimers.has(roomId)) {
         clearTimeout(roomDebounceTimers.get(roomId));
@@ -350,6 +344,60 @@ export const setupSocketHandlers = (io, socket) => {
       safeCallback(
         callback,
         socketResponse(false, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Restore failed')
+      );
+    }
+  });
+
+  socket.on('version:delete', async (data, callback) => {
+    try {
+      const { roomId, versionId } = data;
+      const userId = socket.userId.toString();
+
+      // Validate versionId format
+      if (!versionId || typeof versionId !== 'string' || versionId.length !== 24) {
+        return safeCallback(
+          callback,
+          socketResponse(false, ERROR_CODES.VALIDATION_ERROR, 'Invalid version ID')
+        );
+      }
+
+      const room = await Room.findById(roomId);
+      const version = await Version.findById(versionId);
+
+      if (!room || !version) {
+        return safeCallback(
+          callback,
+          socketResponse(false, ERROR_CODES.NOT_FOUND, 'Version not found')
+        );
+      }
+
+      const role = getUserRoleInRoom(room, userId);
+      if (![USER_ROLES.OWNER, USER_ROLES.EDITOR].includes(role)) {
+        return safeCallback(
+          callback,
+          socketResponse(
+            false,
+            ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+            'Cannot delete'
+          )
+        );
+      }
+
+      // Delete the version
+      await Version.findByIdAndDelete(versionId);
+
+      console.log('Version deleted:', versionId);
+
+      emitToRoom(io, roomId, 'version:deleted', {
+        versionId,
+      });
+
+      safeCallback(callback, socketResponse(true));
+    } catch (err) {
+      console.error('version:delete error:', err);
+      safeCallback(
+        callback,
+        socketResponse(false, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Delete failed')
       );
     }
   });

@@ -77,6 +77,32 @@ export default function VersionHistory({ roomId, socket }) {
     }
   };
 
+  const handleDeleteVersion = (versionId) => {
+    if (!window.confirm('Are you sure you want to delete this version?')) {
+      return;
+    }
+    
+    console.log('Deleting version:', versionId);
+    if (socket) {
+      socket.emit(
+        'version:delete',
+        { roomId, versionId },
+        (response) => {
+          console.log('Delete response:', response);
+          if (!response.success) {
+            console.error('Failed to delete version:', response.message);
+            alert(`Failed to delete: ${response.message}`);
+          } else {
+            console.log('Version deleted successfully');
+            fetchVersions();
+          }
+        }
+      );
+    } else {
+      console.error('Socket not available');
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -115,12 +141,20 @@ export default function VersionHistory({ roomId, socket }) {
                 <small>{version.author?.displayName || 'Unknown'}</small>
                 <small>{formatDate(version.createdAt)}</small>
               </div>
-              <button 
-                className="restore-btn" 
-                onClick={() => handleRestoreVersion(version._id)}
-              >
-                ↩️ Restore
-              </button>
+              <div className="version-actions">
+                <button 
+                  className="restore-btn" 
+                  onClick={() => handleRestoreVersion(version._id)}
+                >
+                  ↩️ Restore
+                </button>
+                <button 
+                  className="delete-btn" 
+                  onClick={() => handleDeleteVersion(version._id)}
+                >
+                  🗑️ Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>

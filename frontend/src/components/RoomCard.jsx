@@ -1,7 +1,14 @@
 import '../styles/components.css';
 
-export default function RoomCard({ room, onSelectRoom }) {
+export default function RoomCard({ room, onSelectRoom, onDeleteRoom, isOwner }) {
   const participantCount = room.participants?.length || 0;
+
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
+    if (window.confirm(`Are you sure you want to delete "${room.name}"? This action cannot be undone.`)) {
+      onDeleteRoom(room._id);
+    }
+  };
 
   return (
     <div className="room-card" onClick={onSelectRoom}>
@@ -15,6 +22,15 @@ export default function RoomCard({ room, onSelectRoom }) {
       </div>
       <div className="room-card-footer">
         <small>{new Date(room.updatedAt).toLocaleDateString()}</small>
+        {isOwner && (
+          <button 
+            onClick={handleDeleteClick}
+            className="delete-room-btn"
+            title="Delete this room"
+          >
+            🗑️ Delete
+          </button>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAllRooms, createRoom } from '../services/api.js';
+import { getAllRooms, createRoom, deleteRoom } from '../services/api.js';
 import { useAuthStore } from '../store/authStore.js';
 import { useRoomStore } from '../store/roomStore.js';
 import RoomCard from '../components/RoomCard.jsx';
@@ -51,6 +51,15 @@ export default function DashboardPage() {
     navigate('/login');
   };
 
+  const handleDeleteRoom = async (roomId) => {
+    try {
+      await deleteRoom(roomId);
+      setRooms(rooms.filter(room => room._id !== roomId));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete room');
+    }
+  };
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
@@ -84,7 +93,13 @@ export default function DashboardPage() {
         ) : (
           <div className="rooms-grid">
             {rooms.map((room) => (
-              <RoomCard key={room._id} room={room} onSelectRoom={() => navigate(`/editor/${room._id}`)} />
+              <RoomCard 
+                key={room._id} 
+                room={room} 
+                onSelectRoom={() => navigate(`/editor/${room._id}`)}
+                onDeleteRoom={handleDeleteRoom}
+                isOwner={room.owner._id === user?.id}
+              />
             ))}
           </div>
         )}
