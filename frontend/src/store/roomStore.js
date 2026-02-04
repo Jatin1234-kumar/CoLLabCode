@@ -13,7 +13,9 @@ export const useRoomStore = create((set) => ({
   theme: localStorage.getItem('editorTheme') || 'one-dark',
 
   setCurrentRoom: (room) => set({ currentRoom: room }),
-  setRooms: (rooms) => set({ rooms }),
+  setRooms: (rooms) => set((state) => ({
+    rooms: typeof rooms === 'function' ? rooms(state.rooms) : rooms
+  })),
   setCode: (code) => set({ code }),
   setLanguage: (language) => set({ language }),
   setParticipants: (participants) => set({ participants }),

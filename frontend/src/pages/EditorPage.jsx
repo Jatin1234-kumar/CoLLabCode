@@ -48,21 +48,53 @@ export default function EditorPage() {
 
   // Initialize socket only after we know user status
   useEffect(() => {
+    console.log('🔄 EditorPage: Socket effect triggered. isParticipant:', isParticipant, 'socket:', !!socket);
+    
     if (isParticipant === true && !socket) {
+      console.log('✅ EditorPage: User is participant, initializing socket');
       initializeSocket();
     } else if (isParticipant === false && !socket) {
+      console.log('⏳ EditorPage: User is NOT participant, setting up join:approved listener');
       // Non-participants also need socket connection to receive join:approved event
       const newSocket = initSocket(token);
       setSocket(newSocket);
 
       // Listen for join approval (for requester)
       newSocket.on('join:approved', (data) => {
-        console.log('✅ Join request approved!', data);
-        // User is now a participant, reload to initialize properly
-        window.location.reload();
+        console.log('✅ EditorPage: Join request approved!', data);
+        
+        // Clean up the socket first
+        newSocket.off('join:approved');
+        newSocket.off('room:deleted');
+        newSocket.close();
+        setSocket(null);
+        
+        // Update state - user is now a participant
+        setJoinRequestPending(false);
+        
+        // Refetch room data to get updated participant info
+        fetchRoom().then(() => {
+          // After fetching, isParticipant will be set to true by fetchRoom
+          console.log('✅ EditorPage: Room data refreshed after approval');
+        });
+      });
+
+      // Listen for room deletion
+      newSocket.on('room:deleted', (data) => {
+        console.log('❌ EditorPage: Room deleted:', data);
+        alert(`This room "${data.roomName}" has been deleted by the owner`);
+        navigate('/dashboard');
       });
     }
-  }, [isParticipant]);
+
+    return () => {
+      // Cleanup on unmount or when isParticipant changes
+      if (socket) {
+        console.log('🧹 EditorPage: Cleaning up socket listeners');
+        socket.removeAllListeners();
+      }
+    };
+  }, [isParticipant, socket]);
 
   const fetchRoom = async () => {
     try {
@@ -150,12 +182,14 @@ export default function EditorPage() {
   };
 
   const initializeSocket = async () => {
+    console.log('🔌 EditorPage: Initializing socket for participant');
     const newSocket = initSocket(token);
     setSocket(newSocket);
 
     // Join room via socket
     newSocket.emit('room:join', { roomId }, (response) => {
       if (response.success) {
+        console.log('✅ EditorPage: Successfully joined room via socket');
         // Room joined successfully, data contains synced state
         if (response.data?.room) {
           setCode(response.data.room.code);
@@ -163,40 +197,50 @@ export default function EditorPage() {
           setParticipants(response.data.room.participants);
         }
       } else {
+        console.error('❌ EditorPage: Failed to join room:', response.message);
         setError(`Failed to join room: ${response.message}`);
       }
     });
 
     // Listen for code updates
     newSocket.on('code:updated', (data) => {
+      console.log('📝 EditorPage: Code updated');
       setCode(data.code);
     });
 
     // Listen for code restoration
     newSocket.on('code:restored', (data) => {
+      console.log('↩️ EditorPage: Code restored from version');
       setCode(data.code);
     });
 
     // Listen for user joined
     newSocket.on('user:joined', (data) => {
-      console.log(`${data.user.username} joined`);
+      console.log(`👋 EditorPage: ${data.user.username} joined`);
     });
 
     // Listen for user left
     newSocket.on('user:left', (data) => {
-      console.log(`${data.username} left`);
+      console.log(`👋 EditorPage: ${data.username} left`);
     });
 
     // Listen for join requests (for room owner)
     newSocket.on('join:request', (data) => {
-      console.log('🔔 New join request received:', data);
+      console.log('🔔 EditorPage: New join request received:', data);
       // Refresh room data to get updated join requests
       fetchRoom();
     });
 
+    // Listen for room deletion
+    newSocket.on('room:deleted', (data) => {
+      console.log('❌ EditorPage: Room deleted:', data);
+      alert(`This room "${data.roomName}" has been deleted by the owner`);
+      navigate('/dashboard');
+    });
+
     // Listen for version saved
     newSocket.on('version:saved', (data) => {
-      console.log('Version saved:', data);
+      console.log('💾 EditorPage: Version saved:', data);
     });
   };
 
@@ -204,7 +248,7 @@ export default function EditorPage() {
     return <div className="editor-loading">Loading editor...</div>;
   }
 
-  if (!isParticipant && joinRequestPending) {
+  if (isParticipant === false && joinRequestPending) {
     return (
       <div className="editor-pending">
         <div className="pending-message">

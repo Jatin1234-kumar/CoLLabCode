@@ -51,12 +51,20 @@ io.use(socketAuthMiddleware);
 setSocketIO(io);
 
 io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.user.username} (${socket.user.id})`);
+  console.log(`✅ User connected: ${socket.user.username} (${socket.user.id})`);
+
+  // Join user to their personal room for direct messaging
+  socket.join(`user:${socket.user.id}`);
+  console.log(`📌 User ${socket.user.username} joined personal room: user:${socket.user.id}`);
 
   setupSocketHandlers(io, socket);
 
+  socket.on('disconnect', (reason) => {
+    console.log(`❌ User disconnected: ${socket.user.username} - ${reason}`);
+  });
+
   socket.on('error', (error) => {
-    console.error('Socket error:', error);
+    console.error('⚠️ Socket error:', error);
   });
 });
 

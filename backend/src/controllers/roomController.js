@@ -2,6 +2,7 @@ import Room from '../models/Room.js';
 import Version from '../models/Version.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { ERROR_CODES, USER_ROLES, REQUEST_STATUS } from '../utils/constants.js';
+import { emitToRoom, broadcastToAll } from '../utils/socket.js';
 
 // @route POST /api/rooms
 // @access Private
@@ -25,6 +26,11 @@ export const createRoom = async (req, res) => {
 
     await room.populate('owner', 'username email displayName');
     await room.populate('participants.userId', 'username email displayName');
+
+    // Broadcast to all connected users that a new room was created
+    broadcastToAll('room:created', {
+      room: room,
+    });
 
     sendSuccess(res, 201, room, 'Room created successfully');
   } catch (error) {
@@ -82,6 +88,15 @@ export const deleteRoom = async (req, res) => {
     if (room.owner.toString() !== req.user._id.toString()) {
       return sendError(res, 403, 'Not authorized to delete this room', ERROR_CODES.ACCESS_DENIED);
     }
+
+    const roomId = room._id.toString();
+
+    // Notify all participants in the room before deletion
+    emitToRoom(roomId, 'room:deleted', {
+      roomId: roomId,
+      roomName: room.name,
+      message: 'This room has been deleted by the owner',
+    });
 
     // Delete associated versions
     await Version.deleteMany({ room: room._id });
