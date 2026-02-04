@@ -75,13 +75,9 @@ export default function DashboardPage() {
       const newRoom = response.data.data;
       setShowCreateModal(false);
       
-      // Add room to local state immediately for creator
-      setRooms((prevRooms) => [newRoom, ...prevRooms]);
-      
-      // Small delay to ensure socket connection is ready
-      setTimeout(() => {
-        navigate(`/editor/${newRoom._id}`);
-      }, 100);
+      // Don't add locally - socket broadcast will handle it for all users
+      // Just navigate to the room
+      navigate(`/editor/${newRoom._id}`);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create room');
     }

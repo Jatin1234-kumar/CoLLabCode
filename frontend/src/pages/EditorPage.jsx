@@ -63,20 +63,21 @@ export default function EditorPage() {
       newSocket.on('join:approved', (data) => {
         console.log('✅ EditorPage: Join request approved!', data);
         
-        // Clean up the socket first
-        newSocket.off('join:approved');
-        newSocket.off('room:deleted');
+        // Clean up the socket completely
+        newSocket.removeAllListeners();
         newSocket.close();
+        
+        // Update state - clear error and pending status
+        setError('');
+        setJoinRequestPending(false);
         setSocket(null);
         
-        // Update state - user is now a participant
-        setJoinRequestPending(false);
-        
-        // Refetch room data to get updated participant info
-        fetchRoom().then(() => {
-          // After fetching, isParticipant will be set to true by fetchRoom
-          console.log('✅ EditorPage: Room data refreshed after approval');
-        });
+        // Wait a bit for backend to update, then refetch room data
+        setTimeout(() => {
+          fetchRoom().then(() => {
+            console.log('✅ EditorPage: Room data refreshed after approval');
+          });
+        }, 500);
       });
 
       // Listen for room deletion
@@ -92,9 +93,13 @@ export default function EditorPage() {
       if (socket) {
         console.log('🧹 EditorPage: Cleaning up socket listeners');
         socket.removeAllListeners();
+        if (isParticipant !== true) {
+          // Only close socket if we're not going to reinitialize for a participant
+          socket.close();
+        }
       }
     };
-  }, [isParticipant, socket]);
+  }, [isParticipant]);
 
   const fetchRoom = async () => {
     try {
