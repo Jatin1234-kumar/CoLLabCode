@@ -15,11 +15,18 @@ export default function VersionHistory({ roomId, socket }) {
         console.log('Version saved event received:', data);
         fetchVersions();
       });
+
+      // Listen for version deletions
+      socket.on('version:deleted', (data) => {
+        console.log('Version deleted event received:', data);
+        setVersions((prevVersions) => prevVersions.filter(v => v._id !== data.versionId));
+      });
     }
 
     return () => {
       if (socket) {
         socket.off('version:saved');
+        socket.off('version:deleted');
       }
     };
   }, [roomId, socket]);
