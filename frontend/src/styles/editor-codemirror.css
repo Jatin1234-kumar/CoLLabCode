@@ -1,0 +1,20 @@
+.code-editor {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.cm-editor {
+  height: 100%;
+}
+
+.cm-gutters {
+  background: #252525;
+  border-right: 1px solid #444;
+}
+
+.cm-lineNumbers .cm-gutterMarker {
+  color: #666;
+}
