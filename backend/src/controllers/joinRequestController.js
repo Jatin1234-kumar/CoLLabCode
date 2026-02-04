@@ -1,6 +1,7 @@
 import Room from '../models/Room.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { ERROR_CODES, REQUEST_STATUS, USER_ROLES } from '../utils/constants.js';
+import { emitToUser } from '../utils/socket.js';
 
 // @route POST /api/rooms/:id/join-request
 // @access Private
@@ -46,7 +47,16 @@ export const requestJoinRoom = async (req, res) => {
     await room.save();
     await room.populate('joinRequests.userId', 'username email displayName');
 
-    sendSuccess(res, 201, room.joinRequests[room.joinRequests.length - 1], 'Join request sent');
+    const newRequest = room.joinRequests[room.joinRequests.length - 1];
+
+    // Emit socket event to room owner
+    console.log('📤 Emitting join:request to owner:', room.owner.toString());
+    emitToUser(room.owner.toString(), 'join:request', {
+      roomId: room._id,
+      request: newRequest,
+    });
+
+    sendSuccess(res, 201, newRequest, 'Join request sent');
   } catch (error) {
     console.error('RequestJoinRoom error:', error);
     sendError(res, 500, 'Error sending join request', ERROR_CODES.INTERNAL_SERVER_ERROR);
@@ -58,6 +68,7 @@ export const requestJoinRoom = async (req, res) => {
 export const approveJoinRequest = async (req, res) => {
   try {
     const { requestId } = req.params;
+    const { overrideRole } = req.body;
     const room = await Room.findById(req.params.id);
 
     if (!room) {
@@ -80,10 +91,18 @@ export const approveJoinRequest = async (req, res) => {
       return sendError(res, 400, 'Request is not pending', ERROR_CODES.VALIDATION_ERROR);
     }
 
+    // Validate override role if provided
+    if (overrideRole && ![USER_ROLES.EDITOR, USER_ROLES.VIEWER].includes(overrideRole)) {
+      return sendError(res, 400, 'Invalid override role', ERROR_CODES.VALIDATION_ERROR);
+    }
+
+    // Use override role if provided, otherwise use requested role
+    const finalRole = overrideRole || request.requestedRole;
+
     // Add user as participant
     room.participants.push({
       userId: request.userId,
-      role: request.requestedRole,
+      role: finalRole,
     });
 
     // Update request status
@@ -91,6 +110,13 @@ export const approveJoinRequest = async (req, res) => {
 
     await room.save();
     await room.populate('participants.userId', 'username email displayName');
+
+    // Emit socket event to the requester
+    console.log('📤 Emitting join:approved to user:', request.userId.toString());
+    emitToUser(request.userId.toString(), 'join:approved', {
+      roomId: room._id,
+      roomName: room.name,
+    });
 
     sendSuccess(res, 200, room, 'Join request approved');
   } catch (error) {

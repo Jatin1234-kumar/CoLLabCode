@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getRoom, runCode } from '../services/api.js';
+import { getRoom, runCode, requestJoinRoom } from '../services/api.js';
 import { initSocket, getSocket } from '../services/socket.js';
 import { useAuthStore } from '../store/authStore.js';
 import { useRoomStore } from '../store/roomStore.js';
@@ -11,6 +11,7 @@ import ParticipantList from '../components/ParticipantList.jsx';
 import VersionHistory from '../components/VersionHistory.jsx';
 import JoinRequestsPanel from '../components/JoinRequestsPanel.jsx';
 import OutputPanel from '../components/OutputPanel.jsx';
+import JoinRoomModal from '../components/JoinRoomModal.jsx';
 import '../styles/editor.css';
 
 export default function EditorPage() {
@@ -27,6 +28,10 @@ export default function EditorPage() {
   const [executionLoading, setExecutionLoading] = useState(false);
   const [executionOutput, setExecutionOutput] = useState('');
   const [executionError, setExecutionError] = useState('');
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [isParticipant, setIsParticipant] = useState(null); // null = not checked yet
+  const [joinRequestPending, setJoinRequestPending] = useState(false);
+  const [showJoinRequests, setShowJoinRequests] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -35,12 +40,29 @@ export default function EditorPage() {
     }
 
     fetchRoom();
-    initializeSocket();
 
     return () => {
       // Cleanup on unmount
     };
   }, [roomId, token, navigate]);
+
+  // Initialize socket only after we know user status
+  useEffect(() => {
+    if (isParticipant === true && !socket) {
+      initializeSocket();
+    } else if (isParticipant === false && !socket) {
+      // Non-participants also need socket connection to receive join:approved event
+      const newSocket = initSocket(token);
+      setSocket(newSocket);
+
+      // Listen for join approval (for requester)
+      newSocket.on('join:approved', (data) => {
+        console.log('✅ Join request approved!', data);
+        // User is now a participant, reload to initialize properly
+        window.location.reload();
+      });
+    }
+  }, [isParticipant]);
 
   const fetchRoom = async () => {
     try {
@@ -51,13 +73,31 @@ export default function EditorPage() {
       setLanguage(room.language);
       setParticipants(room.participants);
 
-      // Determine if current user is read-only
+      // Check if current user is a participant
       const userParticipant = room.participants.find((p) => {
         const pUserId = typeof p.userId === 'object' ? p.userId._id : p.userId;
         return pUserId === user.id;
       });
-      const isReadOnly = userParticipant?.role === USER_ROLES.VIEWER;
-      setEditorReadOnly(isReadOnly);
+
+      if (!userParticipant) {
+        // User is not a participant - check if they have a pending request
+        const hasPendingRequest = room.joinRequests?.some((req) => {
+          const reqUserId = typeof req.userId === 'object' ? req.userId._id : req.userId;
+          return reqUserId === user.id && req.status === 'pending';
+        });
+
+        setIsParticipant(false);
+        setJoinRequestPending(hasPendingRequest);
+        
+        if (!hasPendingRequest) {
+          setShowJoinModal(true);
+        }
+      } else {
+        setIsParticipant(true);
+        // Determine if current user is read-only
+        const isReadOnly = userParticipant.role === USER_ROLES.VIEWER;
+        setEditorReadOnly(isReadOnly);
+      }
     } catch (err) {
       setError('Failed to load room');
       console.error(err);
@@ -98,11 +138,22 @@ export default function EditorPage() {
     }
   };
 
+  const handleJoinRequest = async (requestedRole) => {
+    try {
+      await requestJoinRoom(roomId, requestedRole);
+      setShowJoinModal(false);
+      setJoinRequestPending(true);
+      setError('Join request sent! Waiting for owner approval...');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to send join request');
+    }
+  };
+
   const initializeSocket = async () => {
     const newSocket = initSocket(token);
     setSocket(newSocket);
 
-    // Join room
+    // Join room via socket
     newSocket.emit('room:join', { roomId }, (response) => {
       if (response.success) {
         // Room joined successfully, data contains synced state
@@ -136,14 +187,35 @@ export default function EditorPage() {
       console.log(`${data.username} left`);
     });
 
+    // Listen for join requests (for room owner)
+    newSocket.on('join:request', (data) => {
+      console.log('🔔 New join request received:', data);
+      // Refresh room data to get updated join requests
+      fetchRoom();
+    });
+
     // Listen for version saved
     newSocket.on('version:saved', (data) => {
       console.log('Version saved:', data);
     });
   };
 
-  if (loading) {
+  if (loading || isParticipant === null) {
     return <div className="editor-loading">Loading editor...</div>;
+  }
+
+  if (!isParticipant && joinRequestPending) {
+    return (
+      <div className="editor-pending">
+        <div className="pending-message">
+          <h2>⏳ Join Request Pending</h2>
+          <p>Your request to join "<strong>{currentRoom?.name}</strong>" is waiting for approval from the room owner.</p>
+          <button onClick={() => navigate('/dashboard')} className="back-btn">
+            ← Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -160,6 +232,20 @@ export default function EditorPage() {
           <h1>{currentRoom?.name}</h1>
         </div>
         <div className="header-right">
+          {currentRoom && (typeof currentRoom.owner === 'object' ? currentRoom.owner._id : currentRoom.owner) === user?.id && (
+            <button 
+              onClick={() => setShowJoinRequests(true)} 
+              className="requests-btn"
+              title="View join requests"
+            >
+              📨 Requests
+              {currentRoom?.joinRequests?.filter(r => r.status === 'pending').length > 0 && (
+                <span className="requests-badge">
+                  {currentRoom.joinRequests.filter(r => r.status === 'pending').length}
+                </span>
+              )}
+            </button>
+          )}
           <button onClick={() => setShowVersionHistory(!showVersionHistory)} className="version-btn">
             📚 History
           </button>
@@ -177,9 +263,6 @@ export default function EditorPage() {
         <aside className="editor-sidebar">
           <div className="sidebar-tabs">
             <ParticipantList participants={currentRoom?.participants || []} socket={socket} />
-            {currentRoom?.owner === user?.id && (
-              <JoinRequestsPanel joinRequests={currentRoom?.joinRequests || []} roomId={roomId} />
-            )}
           </div>
         </aside>
 
@@ -196,6 +279,23 @@ export default function EditorPage() {
           output={executionOutput}
           error={executionError}
           onClose={() => setShowOutput(false)}
+        />
+      )}
+
+      {showJoinModal && (
+        <JoinRoomModal
+          roomName={currentRoom?.name}
+          onJoinRequest={handleJoinRequest}
+          onCancel={() => navigate('/dashboard')}
+        />
+      )}
+
+      {showJoinRequests && (
+        <JoinRequestsPanel
+          joinRequests={currentRoom?.joinRequests || []}
+          roomId={roomId}
+          onRequestHandled={fetchRoom}
+          onClose={() => setShowJoinRequests(false)}
         />
       )}
     </div>

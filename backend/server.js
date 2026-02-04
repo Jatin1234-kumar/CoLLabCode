@@ -9,6 +9,7 @@ import connectDB from './src/config/database.js';
 import { errorHandler } from './src/middleware/errorHandler.js';
 import { socketAuthMiddleware } from './src/sockets/socketAuth.js';
 import { setupSocketHandlers } from './src/sockets/handlers.js';
+import { setSocketIO } from './src/utils/socket.js';
 
 import authRoutes from './src/routes/authRoutes.js';
 import roomRoutes from './src/routes/roomRoutes.js';
@@ -45,6 +46,9 @@ app.get('/api/health', (req, res) => {
 
 // Socket.io setup
 io.use(socketAuthMiddleware);
+
+// Make io instance available globally
+setSocketIO(io);
 
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.user.username} (${socket.user.id})`);

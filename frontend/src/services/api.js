@@ -30,8 +30,8 @@ export const runCode = (roomId, code, language) =>
 export const requestJoinRoom = (roomId, requestedRole) =>
   apiClient.post(`/rooms/${roomId}/join-request`, { requestedRole });
 
-export const approveJoinRequest = (roomId, requestId) =>
-  apiClient.post(`/rooms/${roomId}/join-request/${requestId}/approve`);
+export const approveJoinRequest = (roomId, requestId, overrideRole = null) =>
+  apiClient.post(`/rooms/${roomId}/join-request/${requestId}/approve`, { overrideRole });
 
 export const rejectJoinRequest = (roomId, requestId) =>
   apiClient.post(`/rooms/${roomId}/join-request/${requestId}/reject`);
