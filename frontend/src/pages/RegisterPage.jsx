@@ -56,6 +56,9 @@ export default function RegisterPage() {
   return (
     <div className="auth-container">
       <div className="auth-card">
+        <div className="auth-back-link">
+          <a href="/">← Back to Home</a>
+        </div>
         <h1>Collaborative Code Editor</h1>
         <h2>Register</h2>
 
