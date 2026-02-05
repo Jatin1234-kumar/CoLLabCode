@@ -70,12 +70,17 @@ export default function CodeEditor({ socket, roomId }) {
             if (socket) {
               clearTimeout(debounceTimerRef.current);
               debounceTimerRef.current = setTimeout(() => {
+                console.log('📤 CodeEditor: Emitting code:update event');
+                console.log('📊 CodeEditor: Socket status - ID:', socket.id, 'Connected:', socket.connected);
+                console.log('📊 CodeEditor: Sending:', {roomId, codeLength: newCode.length, timestamp: Date.now()});
                 socket.emit('code:update', {
                   roomId: roomId,
                   code: newCode,
                   timestamp: Date.now(),
                 });
               }, 500);
+            } else {
+              console.warn('⚠️ CodeEditor: Socket is not available for emitting code:update');
             }
           }
 

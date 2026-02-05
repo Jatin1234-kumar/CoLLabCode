@@ -3,6 +3,20 @@ import Room from '../models/Room.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { ERROR_CODES } from '../utils/constants.js';
 
+// Map language names to Piston language IDs
+const PISTON_LANGUAGE_MAP = {
+  javascript: 'javascript',
+  python: 'python3',
+  java: 'java',
+  cpp: 'cpp',
+  c: 'c',
+  csharp: 'csharp',
+  php: 'php',
+  ruby: 'ruby',
+  go: 'go',
+  rust: 'rust',
+};
+
 // @route POST /api/rooms/:id/run
 // @access Private (Participants only)
 export const runCode = async (req, res) => {
@@ -30,103 +44,72 @@ export const runCode = async (req, res) => {
       return sendError(res, 403, 'Not authorized to run code', ERROR_CODES.ACCESS_DENIED);
     }
 
-    // Check if Judge0 is configured
-    const judge0Url = process.env.JUDGE0_API_URL;
-    const judge0ApiKey = process.env.JUDGE0_API_KEY;
+    // Check if Piston is configured
+    const pistonUrl = process.env.PISTON_API_URL || 'https://emkc.org/api/v2';
 
-    if (!judge0Url || !judge0ApiKey) {
-      return sendError(
-        res,
-        503,
-        'Code execution service not configured. Set JUDGE0_API_URL and JUDGE0_API_KEY environment variables.',
-        ERROR_CODES.INTERNAL_SERVER_ERROR
-      );
-    }
-
-    // Map language to Judge0 language ID
-    const languageMap = {
-      javascript: 63,
-      python: 71,
-      java: 62,
-      cpp: 53,
-      c: 50,
-      csharp: 51,
-      html: 60,
-      css: 64,
-      sql: 82,
-      php: 68,
-      ruby: 72,
-      go: 60,
-      rust: 73,
-    };
-
-    const languageId = languageMap[language];
-    if (!languageId) {
+    // Map language to Piston language
+    const pistonLanguage = PISTON_LANGUAGE_MAP[language];
+    if (!pistonLanguage) {
       return sendError(res, 400, `Language '${language}' is not supported for code execution`, ERROR_CODES.VALIDATION_ERROR);
     }
 
     try {
-      // Submit code to Judge0
-      const submitResponse = await axios.post(
-        `${judge0Url}/submissions`,
+      // Execute code via Piston API
+      const executeUrl = `${pistonUrl}/piston/execute`;
+      console.log('📤 Piston Execute URL:', executeUrl);
+      console.log('📤 Piston Language:', pistonLanguage);
+
+      const executionResponse = await axios.post(
+        executeUrl,
         {
-          source_code: code,
-          language_id: languageId,
-          stdin: '',
+          language: pistonLanguage,
+          version: '*',
+          files: [
+            {
+              name: 'main',
+              content: code,
+            },
+          ],
         },
         {
           headers: {
-            'X-Auth-Token': judge0ApiKey,
             'Content-Type': 'application/json',
           },
+          timeout: 30000,
         }
       );
 
-      const submissionToken = submitResponse.data.token;
+      const result = executionResponse.data;
 
-      // Poll for result (max 10 attempts, 1 second each)
-      let result = null;
-      let attempts = 0;
-      const maxAttempts = 10;
-
-      while (attempts < maxAttempts) {
-        const resultResponse = await axios.get(`${judge0Url}/submissions/${submissionToken}`, {
-          headers: {
-            'X-Auth-Token': judge0ApiKey,
-          },
-        });
-
-        if (resultResponse.data.status.id <= 2) {
-          // Still running (1 = In Queue, 2 = Processing)
-          attempts++;
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        } else {
-          result = resultResponse.data;
-          break;
-        }
-      }
-
-      if (!result) {
-        return sendError(res, 504, 'Code execution timeout', ERROR_CODES.INTERNAL_SERVER_ERROR);
-      }
-
-      // Format response
+      // Format response to match expected format
       const executionResult = {
-        statusId: result.status.id,
-        statusName: result.status.description,
-        stdout: result.stdout || '',
-        stderr: result.stderr || '',
-        compilationError: result.compile_output || '',
-        exitCode: result.exit_code || null,
+        statusId: result.run?.exit_code === 0 ? 3 : 5, // 3=Accepted, 5=Runtime Error
+        statusName: result.run?.exit_code === 0 ? 'Accepted' : 'Runtime Error',
+        stdout: result.run?.stdout || '',
+        stderr: result.run?.stderr || '',
+        compilationError: result.compile?.stderr || '',
+        exitCode: result.run?.exit_code || null,
       };
 
+      console.log('✅ Code executed successfully');
       sendSuccess(res, 200, executionResult, 'Code executed successfully');
-    } catch (judge0Error) {
-      console.error('Judge0 API error:', judge0Error.message);
+    } catch (pistonError) {
+      const status = pistonError.response?.status;
+      const responseData = pistonError.response?.data;
+      const config = pistonError.config;
+
+      console.error('❌ Piston API error:', {
+        message: pistonError.message,
+        status,
+        responseData,
+        url: config?.url,
+        method: config?.method,
+      });
+
       return sendError(
         res,
         502,
-        'Failed to connect to code execution service',
+        `Failed to execute code${status ? ` (status ${status})` : ''}. ${pistonError.message}`,
         ERROR_CODES.INTERNAL_SERVER_ERROR
       );
     }

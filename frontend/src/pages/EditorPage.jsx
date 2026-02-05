@@ -52,16 +52,19 @@ export default function EditorPage() {
     
     if (isParticipant === true && !socket) {
       console.log('✅ EditorPage: User is participant, initializing socket');
+      console.log('📊 EditorPage: Creating participant socket with token:', token ? '***' : 'NO TOKEN');
       initializeSocket();
     } else if (isParticipant === false && !socket) {
       console.log('⏳ EditorPage: User is NOT participant, setting up join:approved listener');
       // Non-participants also need socket connection to receive join:approved event
       const newSocket = initSocket(token);
+      console.log('📊 EditorPage: Created non-participant socket. ID:', newSocket.id, 'Connected:', newSocket.connected);
       setSocket(newSocket);
 
       // Listen for join approval (for requester)
       newSocket.on('join:approved', (data) => {
         console.log('✅ EditorPage: Join request approved!', data);
+        console.log('📊 EditorPage: Socket listeners count before cleanup:', Object.keys(newSocket._events || {}).length);
         
         // Clean up the socket completely
         newSocket.removeAllListeners();
@@ -209,11 +212,11 @@ export default function EditorPage() {
 
     // Listen for code updates
     newSocket.on('code:updated', (data) => {
-      console.log('📝 EditorPage: Code updated');
+      console.log('📝 EditorPage: Code updated event received!');
+      console.log('📊 EditorPage: Code update data:', { codeLength: data.code?.length, userId: data.userId, username: data.username });
+      console.log('📊 EditorPage: Current socket ID:', newSocket.id, 'Socket rooms:', Object.keys(newSocket.adapter?.rooms || {}));
       setCode(data.code);
     });
-
-    // Listen for code restoration
     newSocket.on('code:restored', (data) => {
       console.log('↩️ EditorPage: Code restored from version');
       setCode(data.code);
@@ -227,6 +230,18 @@ export default function EditorPage() {
     // Listen for user left
     newSocket.on('user:left', (data) => {
       console.log(`👋 EditorPage: ${data.username} left`);
+    });
+
+    // Listen for participant role changes (for everyone in room)
+    newSocket.on('participant:role-updated', (data) => {
+      console.log('👤 EditorPage: Participant role updated:', data);
+      fetchRoom(); // Refetch room data to update participants
+    });
+
+    // Listen for when current user's role changes
+    newSocket.on('my:role-changed', (data) => {
+      console.log('✅ EditorPage: Your role changed to:', data.newRole);
+      fetchRoom(); // Refetch room data to update own permissions
     });
 
     // Listen for join requests (for room owner)
@@ -311,7 +326,13 @@ export default function EditorPage() {
 
         <aside className="editor-sidebar">
           <div className="sidebar-tabs">
-            <ParticipantList participants={currentRoom?.participants || []} socket={socket} />
+            <ParticipantList 
+              participants={currentRoom?.participants || []} 
+              socket={socket}
+              currentRoom={currentRoom}
+              currentUser={user}
+              onRoleChange={fetchRoom}
+            />
           </div>
         </aside>
 

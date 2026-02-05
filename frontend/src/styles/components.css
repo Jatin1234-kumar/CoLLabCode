@@ -260,6 +260,73 @@
   background: #22c55e;
 }
 
+.participant-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.menu-container {
+  position: relative;
+}
+
+.menu-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 16px;
+  border-radius: 4px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.menu-btn:hover {
+  background: #333;
+  color: #e0e0e0;
+}
+
+.role-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: #1e1e1e;
+  border: 1px solid #444;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  min-width: 140px;
+  margin-top: 4px;
+}
+
+.role-option {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: #e0e0e0;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12px;
+  transition: background 0.2s ease;
+}
+
+.role-option:hover:not(:disabled) {
+  background: #333;
+}
+
+.role-option.active {
+  background: #0ea5e9;
+  color: white;
+}
+
+.role-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .version-history {
   padding: 16px;
   display: flex;

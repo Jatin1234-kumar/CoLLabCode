@@ -72,7 +72,17 @@ export const checkPermission = (role, requiredRoles) => {
 
 // Emit to room
 export const emitToRoom = (io, roomId, eventName, data) => {
-  io.to(`room:${roomId}`).emit(eventName, data);
+  console.log(`📡 emitToRoom called: event=${eventName}, room=room:${roomId}, io=${io ? 'VALID' : 'NULL'}`);
+  try {
+    const room = io.sockets.adapter.rooms.get(`room:${roomId}`);
+    const socketCount = room ? room.size : 0;
+    console.log(`📊 emitToRoom: Found ${socketCount} sockets in room:${roomId}`);
+    
+    io.to(`room:${roomId}`).emit(eventName, data);
+    console.log(`✅ emitToRoom: Successfully emitted ${eventName} to ${socketCount} sockets`);
+  } catch (err) {
+    console.error(`❌ emitToRoom error:`, err.message);
+  }
 };
 
 // Emit to user
