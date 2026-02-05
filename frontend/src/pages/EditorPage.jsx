@@ -8,6 +8,7 @@ import { useEditorStore } from '../store/editorStore.js';
 import { USER_ROLES } from '../utils/constants.js';
 import CodeEditor from '../components/CodeEditor.jsx';
 import ParticipantList from '../components/ParticipantList.jsx';
+import AIReviewPanel from '../components/AIReviewPanel.jsx';
 import VersionHistory from '../components/VersionHistory.jsx';
 import JoinRequestsPanel from '../components/JoinRequestsPanel.jsx';
 import OutputPanel from '../components/OutputPanel.jsx';
@@ -332,6 +333,14 @@ export default function EditorPage() {
               currentRoom={currentRoom}
               currentUser={user}
               onRoleChange={fetchRoom}
+            />
+            <AIReviewPanel
+              roomId={roomId}
+              code={code}
+              canUse={currentRoom?.participants?.some((p) => {
+                const pUserId = typeof p.userId === 'object' ? p.userId._id : p.userId;
+                return pUserId === user?.id && (p.role === USER_ROLES.OWNER || p.role === USER_ROLES.EDITOR);
+              })}
             />
           </div>
         </aside>

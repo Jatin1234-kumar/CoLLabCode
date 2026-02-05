@@ -26,6 +26,9 @@ export const leaveRoom = (roomId) => apiClient.post(`/rooms/${roomId}/leave`);
 export const runCode = (roomId, code, language) =>
   apiClient.post(`/rooms/${roomId}/run`, { code, language });
 
+export const requestAiReview = (roomId, message, code) =>
+  apiClient.post(`/rooms/${roomId}/ai-review`, { message, code });
+
 // Join request endpoints
 export const requestJoinRoom = (roomId, requestedRole) =>
   apiClient.post(`/rooms/${roomId}/join-request`, { requestedRole });
