@@ -53,9 +53,6 @@ export const setupSocketHandlers = (io, socket) => {
       socket.join(`user:${userId}`);
       socket.currentRoom = roomId;
 
-      console.log('🚪 Backend: User joined room');
-      console.log('📊 Backend: Socket ID:', socket.id, 'Room ID:', roomId, 'Socket rooms after join:', socket.rooms);
-
       emitToRoom(io, roomId, 'user:joined', {
         user: socket.user,
         role: getUserRoleInRoom(room, userId),
@@ -121,7 +118,6 @@ export const setupSocketHandlers = (io, socket) => {
 
       // Only owner can change roles
       if (room.owner.toString() !== requestingUserId) {
-        console.error('Unauthorized role change attempt');
         return;
       }
 
@@ -137,7 +133,7 @@ export const setupSocketHandlers = (io, socket) => {
         newRole,
       });
 
-      console.log(`✅ Role changed for user ${userId} to ${newRole} in room ${roomId}`);
+      
     } catch (err) {
       console.error('participant:role-changed error:', err);
     }
@@ -150,11 +146,7 @@ export const setupSocketHandlers = (io, socket) => {
       const { roomId, code, timestamp } = data;
       const userId = socket.userId.toString();
 
-      console.log('📤 Backend: code:update received!');
-      console.log('📊 Backend: Data:', { roomId, codeLength: code?.length, userId, socketId: socket.id });
-      
       if (!roomId || code === undefined) {
-        console.warn('⚠️ Backend: Invalid data in code:update');
         return safeCallback(
           callback,
           socketResponse(false, ERROR_CODES.VALIDATION_ERROR, 'Invalid data')
@@ -200,8 +192,6 @@ export const setupSocketHandlers = (io, socket) => {
         setTimeout(() => room.save(), DEBOUNCE_DELAY)
       );
 
-      console.log('📡 Backend: Broadcasting code:updated to room:', roomId);
-      console.log('📊 Backend: Broadcasting data:', { codeLength: code.length, userId, timestamp: serverTimestamp });
       emitToRoom(io, roomId, 'code:updated', {
         code,
         userId: socket.user.id,

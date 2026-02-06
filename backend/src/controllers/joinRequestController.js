@@ -50,7 +50,6 @@ export const requestJoinRoom = async (req, res) => {
     const newRequest = room.joinRequests[room.joinRequests.length - 1];
 
     // Emit socket event to room owner
-    console.log('📤 Emitting join:request to owner:', room.owner.toString());
     emitToUser(room.owner.toString(), 'join:request', {
       roomId: room._id,
       request: newRequest,
@@ -112,7 +111,6 @@ export const approveJoinRequest = async (req, res) => {
     await room.populate('participants.userId', 'username email displayName');
 
     // Emit socket event to the requester
-    console.log('📤 Emitting join:approved to user:', request.userId.toString());
     emitToUser(request.userId.toString(), 'join:approved', {
       roomId: room._id,
       roomName: room.name,

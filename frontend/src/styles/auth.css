@@ -3,17 +3,19 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+  background: radial-gradient(1200px 600px at 20% 0%, rgba(56, 189, 248, 0.12), transparent 60%),
+    radial-gradient(900px 500px at 90% 10%, rgba(14, 165, 233, 0.08), transparent 60%),
+    linear-gradient(135deg, #0f1114 0%, #161b22 100%);
 }
 
 .auth-card {
-  background: #252525;
-  border: 1px solid #444;
-  border-radius: 8px;
+  background: rgba(21, 26, 32, 0.9);
+  border: 1px solid var(--border-600);
+  border-radius: 14px;
   padding: 40px;
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-1);
 }
 
 .auth-back-link {
@@ -21,7 +23,7 @@
 }
 
 .auth-back-link a {
-  color: #0ea5e9;
+  color: var(--text-300);
   text-decoration: none;
   font-size: 14px;
   display: inline-flex;
@@ -30,20 +32,21 @@
 }
 
 .auth-back-link a:hover {
-  color: #38bdf8;
+  color: var(--accent-500);
   text-decoration: underline;
 }
 
 .auth-card h1 {
   font-size: 24px;
   margin-bottom: 8px;
-  color: #0ea5e9;
+  color: var(--text-100);
+  letter-spacing: 0.3px;
 }
 
 .auth-card h2 {
   font-size: 18px;
   margin-bottom: 24px;
-  color: #e0e0e0;
+  color: var(--text-300);
 }
 
 .form-group {
@@ -54,7 +57,7 @@
   display: block;
   margin-bottom: 6px;
   font-size: 14px;
-  color: #a0a0a0;
+  color: var(--text-300);
 }
 
 .form-group input {
@@ -64,7 +67,7 @@
 .submit-btn {
   width: 100%;
   padding: 10px;
-  background: #0ea5e9;
+  background: linear-gradient(135deg, #0ea5e9, #38bdf8);
   color: white;
   font-weight: 600;
   margin-top: 8px;
@@ -75,8 +78,9 @@
 }
 
 .error-message {
-  background: #7f1d1d;
+  background: rgba(239, 68, 68, 0.15);
   color: #fecaca;
+  border: 1px solid rgba(239, 68, 68, 0.35);
   padding: 12px;
   border-radius: 4px;
   margin-bottom: 16px;
@@ -90,5 +94,5 @@
 }
 
 .auth-link a {
-  color: #0ea5e9;
+  color: var(--accent-500);
 }

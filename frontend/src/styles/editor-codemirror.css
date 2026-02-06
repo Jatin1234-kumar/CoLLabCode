@@ -1,7 +1,7 @@
 .code-editor {
-  background: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  background: #11161c;
+  color: #e6edf3;
+  font-family: 'JetBrains Mono', 'SFMono-Regular', 'Menlo', 'Monaco', monospace;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -11,10 +11,10 @@
 }
 
 .cm-gutters {
-  background: #252525;
-  border-right: 1px solid #444;
+  background: #161c24;
+  border-right: 1px solid #263241;
 }
 
 .cm-lineNumbers .cm-gutterMarker {
-  color: #666;
+  color: #6b7280;
 }

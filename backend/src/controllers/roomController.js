@@ -144,6 +144,13 @@ export const deleteRoom = async (req, res) => {
       message: 'This room has been deleted by the owner',
     });
 
+    // Also broadcast so dashboards outside the room update immediately
+    broadcastToAll('room:deleted', {
+      roomId: roomId,
+      roomName: room.name,
+      message: 'This room has been deleted by the owner',
+    });
+
     // Delete associated versions
     await Version.deleteMany({ room: room._id });
 
@@ -221,7 +228,6 @@ export const leaveRoom = async (req, res) => {
     await room.save();
 
     // Emit to room owner
-    console.log('📤 Emitting participant:left to owner:', room.owner.toString());
     emitToUser(room.owner.toString(), 'participant:left', {
       roomId: room._id,
       roomName: room.name,

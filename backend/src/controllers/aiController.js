@@ -113,7 +113,7 @@ export const reviewCodeWithAI = async (req, res) => {
     let modelName = await findWorkingModel(apiKey);
     
     if (!modelName) {
-      console.error('No working Gemini models found with this API key');
+      console.error('No working Gemini models found');
       return sendError(
         res, 
         502, 
@@ -123,8 +123,6 @@ export const reviewCodeWithAI = async (req, res) => {
     }
 
     const GEMINI_API_URL = getGeminiApiUrl(modelName);
-    console.log(`Using Gemini model: ${modelName}`);
-
     const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -144,7 +142,7 @@ export const reviewCodeWithAI = async (req, res) => {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Gemini API error:', JSON.stringify(errorData, null, 2));
+      console.error('Gemini API error:', response.status);
       
       if (response.status === 404) {
         return sendError(res, 502, `Model ${modelName} not found. Check Google AI Studio for available models.`, ERROR_CODES.INTERNAL_SERVER_ERROR);
@@ -165,7 +163,7 @@ export const reviewCodeWithAI = async (req, res) => {
     const data = await response.json();
     
     if (!data.candidates || !data.candidates[0]) {
-      console.error('Unexpected Gemini response:', data);
+      console.error('Unexpected Gemini response');
       return sendError(res, 502, 'Invalid response from Gemini API', ERROR_CODES.INTERNAL_SERVER_ERROR);
     }
     
@@ -173,7 +171,7 @@ export const reviewCodeWithAI = async (req, res) => {
 
     sendSuccess(res, 200, { reply }, 'AI review completed');
   } catch (error) {
-    console.error('AI review error:', error);
+    console.error('AI review error:', error.message);
     sendError(res, 500, 'AI review failed', ERROR_CODES.INTERNAL_SERVER_ERROR);
   }
 };

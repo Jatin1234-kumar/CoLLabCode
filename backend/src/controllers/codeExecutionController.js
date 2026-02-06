@@ -56,8 +56,6 @@ export const runCode = async (req, res) => {
     try {
       // Execute code via Piston API
       const executeUrl = `${pistonUrl}/piston/execute`;
-      console.log('📤 Piston Execute URL:', executeUrl);
-      console.log('📤 Piston Language:', pistonLanguage);
 
       const executionResponse = await axios.post(
         executeUrl,
@@ -91,20 +89,10 @@ export const runCode = async (req, res) => {
         exitCode: result.run?.exit_code || null,
       };
 
-      console.log('✅ Code executed successfully');
       sendSuccess(res, 200, executionResult, 'Code executed successfully');
     } catch (pistonError) {
       const status = pistonError.response?.status;
-      const responseData = pistonError.response?.data;
-      const config = pistonError.config;
-
-      console.error('❌ Piston API error:', {
-        message: pistonError.message,
-        status,
-        responseData,
-        url: config?.url,
-        method: config?.method,
-      });
+      console.error('Piston API error:', pistonError.message, status ? `(status ${status})` : '');
 
       return sendError(
         res,
@@ -114,7 +102,7 @@ export const runCode = async (req, res) => {
       );
     }
   } catch (error) {
-    console.error('RunCode error:', error);
+    console.error('RunCode error:', error.message);
     sendError(res, 500, 'Error executing code', ERROR_CODES.INTERNAL_SERVER_ERROR);
   }
 };

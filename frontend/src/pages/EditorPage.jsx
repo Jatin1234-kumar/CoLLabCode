@@ -224,21 +224,29 @@ export default function EditorPage() {
     newSocket.off('room:deleted');
     newSocket.off('version:saved');
 
-    // Join room via socket
-    newSocket.emit('room:join', { roomId }, (response) => {
-      if (response.success) {
-        console.log('✅ EditorPage: Successfully joined room via socket');
-        // Room joined successfully, data contains synced state
-        if (response.data?.room) {
-          setCode(response.data.room.code);
-          setLanguage(response.data.room.language);
-          setParticipants(response.data.room.participants);
+    const joinRoom = () => {
+      newSocket.emit('room:join', { roomId }, (response) => {
+        if (response.success) {
+          console.log('✅ EditorPage: Successfully joined room via socket');
+          // Room joined successfully, data contains synced state
+          if (response.data?.room) {
+            setCode(response.data.room.code);
+            setLanguage(response.data.room.language);
+            setParticipants(response.data.room.participants);
+          }
+        } else {
+          console.error('❌ EditorPage: Failed to join room:', response.message);
+          setError(`Failed to join room: ${response.message}`);
         }
-      } else {
-        console.error('❌ EditorPage: Failed to join room:', response.message);
-        setError(`Failed to join room: ${response.message}`);
-      }
-    });
+      });
+    };
+
+    newSocket.off('connect', joinRoom);
+    newSocket.on('connect', joinRoom);
+
+    if (newSocket.connected) {
+      joinRoom();
+    }
 
     // Listen for code updates
     newSocket.on('code:updated', (data) => {

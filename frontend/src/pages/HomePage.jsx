@@ -25,14 +25,14 @@ export default function HomePage() {
     },
     {
       icon: '🎯',
-      title: 'Smart Role Management',
-      description: 'Control access with Owner, Editor, and Viewer roles. Assign permissions on the fly.',
+      title: 'Role-Based Access',
+      description: 'Owner, Editor, and Viewer roles with live permission changes.',
       gradient: 'from-purple-500 to-pink-500'
     },
     {
       icon: '💾',
-      title: 'Version Control',
-      description: 'Save, restore, and manage code versions effortlessly. Never lose your progress.',
+      title: 'Version History',
+      description: 'Save, restore, and manage code versions without losing progress.',
       gradient: 'from-green-500 to-emerald-500'
     },
     {
@@ -42,16 +42,55 @@ export default function HomePage() {
       gradient: 'from-orange-500 to-red-500'
     },
     {
-      icon: '🔒',
-      title: 'Secure & Private',
-      description: 'Your code is protected with JWT authentication and secure room access controls.',
+      icon: '🤖',
+      title: 'AI Code Review',
+      description: 'Ask the AI to review code and get actionable suggestions.',
       gradient: 'from-indigo-500 to-purple-500'
     },
     {
-      icon: '🎨',
-      title: 'Beautiful Editor',
-      description: 'Powered by CodeMirror 6 with syntax highlighting and dark theme support.',
+      icon: '🔑',
+      title: 'Invite by Code',
+      description: 'Share a secure 6-digit code to invite teammates instantly.',
       gradient: 'from-pink-500 to-rose-500'
+    }
+  ];
+
+  const moreFeatures = [
+    'Room search by name',
+    'Ownership transfer',
+    'Live notifications',
+    'Secure JWT auth',
+    'Participant role changes',
+    'Join request approvals'
+  ];
+
+  const comparisons = [
+    {
+      title: 'Typical Web Code Editors',
+      tag: 'Baseline',
+      items: [
+        { label: 'Real-time sync', value: 'Limited' },
+        { label: 'Role management', value: 'Basic' },
+        { label: 'Invite by code', value: 'No' },
+        { label: 'AI review', value: 'No' },
+        { label: 'Ownership transfer', value: 'No' },
+        { label: 'Room notifications', value: 'Limited' },
+        { label: 'Built-in execution', value: 'Varies' }
+      ]
+    },
+    {
+      title: 'CodeCollab',
+      tag: 'Your Product',
+      highlight: true,
+      items: [
+        { label: 'Real-time sync', value: 'Yes' },
+        { label: 'Role management', value: 'Owner/Editor/Viewer' },
+        { label: 'Invite by code', value: 'Yes' },
+        { label: 'AI review', value: 'Yes' },
+        { label: 'Ownership transfer', value: 'Yes' },
+        { label: 'Room notifications', value: 'Yes' },
+        { label: 'Built-in execution', value: 'Yes (10+ langs)' }
+      ]
     }
   ];
 
@@ -166,6 +205,47 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+
+        <div className="more-features">
+          <div className="more-title">More built-in capabilities</div>
+          <div className="more-list">
+            {moreFeatures.map((item, index) => (
+              <span key={index} className="more-pill">{item}</span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Comparison Section */}
+      <section className="comparison-section">
+        <div className="section-header">
+          <h2 className="section-title">How We Compare</h2>
+          <p className="section-subtitle">
+            Built for teams that need more than a basic web editor
+          </p>
+        </div>
+
+        <div className="comparison-grid">
+          {comparisons.map((card, index) => (
+            <div
+              key={index}
+              className={`comparison-card${card.highlight ? ' highlight' : ''}`}
+            >
+              <div className="comparison-header">
+                <h3 className="comparison-title">{card.title}</h3>
+                <span className="comparison-tag">{card.tag}</span>
+              </div>
+              <div className="comparison-list">
+                {card.items.map((item, itemIndex) => (
+                  <div key={itemIndex} className="comparison-item">
+                    <span className="comparison-label">{item.label}</span>
+                    <span className="comparison-value">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* CTA Section */}
@@ -188,7 +268,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="home-footer">
-        <p>Built with ❤️ using React, Socket.io, and CodeMirror</p>
+        <p>Code Together, Build Better</p>
       </footer>
     </div>
   );

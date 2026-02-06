@@ -117,7 +117,7 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
   const handleDeleteRoom = async (roomId) => {
