@@ -17,6 +17,8 @@ export const getAllRooms = () => apiClient.get('/rooms');
 
 export const getRoom = (roomId) => apiClient.get(`/rooms/${roomId}`);
 
+export const getRoomByCode = (code) => apiClient.get(`/rooms/code/${code}`);
+
 export const deleteRoom = (roomId) => apiClient.delete(`/rooms/${roomId}`);
 
 export const getRoomVersions = (roomId) => apiClient.get(`/rooms/${roomId}/versions`);

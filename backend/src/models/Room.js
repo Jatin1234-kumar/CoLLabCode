@@ -8,6 +8,12 @@ const roomSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    roomCode: {
+      type: String,
+      required: true,
+      unique: true,
+      length: 6,
+    },
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -85,5 +91,6 @@ const roomSchema = new mongoose.Schema(
 roomSchema.index({ owner: 1 });
 roomSchema.index({ 'participants.userId': 1 });
 roomSchema.index({ 'joinRequests.userId': 1 });
+roomSchema.index({ roomCode: 1 });
 
 export default mongoose.model('Room', roomSchema);

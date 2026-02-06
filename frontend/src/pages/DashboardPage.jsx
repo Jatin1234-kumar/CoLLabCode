@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAllRooms, createRoom, deleteRoom } from '../services/api.js';
+import { getAllRooms, createRoom, deleteRoom, leaveRoom, transferOwnership } from '../services/api.js';
 import { initSocket } from '../services/socket.js';
 import { useAuthStore } from '../store/authStore.js';
 import { useRoomStore } from '../store/roomStore.js';
 import RoomCard from '../components/RoomCard.jsx';
 import CreateRoomModal from '../components/CreateRoomModal.jsx';
+import TransferOwnershipModal from '../components/TransferOwnershipModal.jsx';
+import JoinByCodeModal from '../components/JoinByCodeModal.jsx';
+import Toast from '../components/Toast.jsx';
 import '../styles/dashboard.css';
 
 export default function DashboardPage() {
@@ -13,7 +16,11 @@ export default function DashboardPage() {
   const { user, logout, token } = useAuthStore();
   const { rooms, setRooms, setLoading, isLoading } = useRoomStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [showJoinByCodeModal, setShowJoinByCodeModal] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState(null);
   const [error, setError] = useState('');
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     if (!token) {
@@ -49,10 +56,34 @@ export default function DashboardPage() {
       setRooms((prevRooms) => (Array.isArray(prevRooms) ? prevRooms.filter((room) => room._id !== data.roomId) : []));
     });
 
+    // Listen for join request approval
+    socket.on('join:approved', (data) => {
+      console.log('✅ Dashboard: Join request approved:', data);
+      setToast({
+        message: `Your join request for "${data.roomName}" has been approved! 🎉`,
+        type: 'success'
+      });
+      // Refresh rooms to show the newly joined room
+
+          // Listen for participant leaving (notification for owner)
+          socket.on('participant:left', (data) => {
+            console.log('🚪 Dashboard: Participant left:', data);
+            setToast({
+              message: `${data.userName} left "${data.roomName}"`,
+              type: 'info'
+            });
+            // Refresh rooms to get updated participant count
+            fetchRooms();
+          });
+      fetchRooms();
+    });
+
     return () => {
       console.log('🧹 Dashboard: Cleaning up socket listeners');
       socket.off('room:created');
       socket.off('room:deleted');
+      socket.off('join:approved');
+      socket.off('participant:left');
     };
   }, [token, navigate]);
 
@@ -97,6 +128,62 @@ export default function DashboardPage() {
     }
   };
 
+  const handleLeaveRoom = async (roomId, room) => {
+    // If user is the owner, show transfer modal
+    if (room && room.owner._id === user?.id) {
+      setSelectedRoom(room);
+      setShowTransferModal(true);
+      return;
+    }
+
+    // For regular participants, confirm and leave directly
+    if (window.confirm('Are you sure you want to leave this room?')) {
+      try {
+        await leaveRoom(roomId);
+        // Don't remove room from dashboard - just leave it
+        // Room will be refetched on next load showing updated participant list
+        setError('');
+        // Optionally refresh rooms to show updated participant count
+        fetchRooms();
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to leave room');
+      }
+    }
+  };
+
+  const handleTransferOwnership = async (newOwnerId) => {
+    if (!selectedRoom) return;
+
+    try {
+      await transferOwnership(selectedRoom._id, newOwnerId);
+      // After transfer, leave the room
+      await leaveRoom(selectedRoom._id);
+      // Don't remove room from dashboard - refresh to show updated ownership
+      fetchRooms();
+      setShowTransferModal(false);
+      setSelectedRoom(null);
+      setError('');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to transfer ownership');
+      setShowTransferModal(false);
+    }
+  };
+
+  const handleDeleteAfterTransfer = async () => {
+    if (!selectedRoom) return;
+    
+    try {
+      await deleteRoom(selectedRoom._id);
+      setRooms((prevRooms) => (Array.isArray(prevRooms) ? prevRooms.filter(room => room._id !== selectedRoom._id) : []));
+      setShowTransferModal(false);
+      setSelectedRoom(null);
+      setError('');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete room');
+      setShowTransferModal(false);
+    }
+  };
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
@@ -114,9 +201,14 @@ export default function DashboardPage() {
       <main className="dashboard-main">
         <div className="dashboard-top">
           <h2>Your Rooms</h2>
-          <button onClick={() => setShowCreateModal(true)} className="create-btn">
-            + Create Room
-          </button>
+          <div className="dashboard-actions">
+            <button onClick={() => setShowJoinByCodeModal(true)} className="join-code-btn">
+              🔑 Join by Code
+            </button>
+            <button onClick={() => setShowCreateModal(true)} className="create-btn">
+              + Create Room
+            </button>
+          </div>
         </div>
 
         {error && <div className="error-message">{error}</div>}
@@ -135,7 +227,9 @@ export default function DashboardPage() {
                 room={room} 
                 onSelectRoom={() => navigate(`/editor/${room._id}`)}
                 onDeleteRoom={handleDeleteRoom}
+                onLeaveRoom={handleLeaveRoom}
                 isOwner={room.owner._id === user?.id}
+                currentUserId={user?.id}
               />
             ))}
           </div>
@@ -146,6 +240,38 @@ export default function DashboardPage() {
         <CreateRoomModal
           onClose={() => setShowCreateModal(false)}
           onCreate={handleCreateRoom}
+        />
+      )}
+
+      {showJoinByCodeModal && (
+        <JoinByCodeModal
+          onClose={() => setShowJoinByCodeModal(false)}
+          onJoinSuccess={(room) => {
+            setShowJoinByCodeModal(false);
+            setError(`Join request sent to "${room.name}"`);
+            setTimeout(() => setError(''), 3000);
+          }}
+        />
+      )}
+
+      {showTransferModal && selectedRoom && (
+        <TransferOwnershipModal
+          room={selectedRoom}
+          onTransfer={handleTransferOwnership}
+          onDelete={handleDeleteAfterTransfer}
+          onCancel={() => {
+            setShowTransferModal(false);
+            setSelectedRoom(null);
+          }}
+        />
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={5000}
         />
       )}
     </div>

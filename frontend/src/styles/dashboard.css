@@ -63,6 +63,26 @@
   font-size: 18px;
 }
 
+.dashboard-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.join-code-btn {
+  padding: 10px 20px;
+  background: #10b981;
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.join-code-btn:hover {
+  background: #059669;
+}
+
 .create-btn {
   padding: 10px 20px;
   background: #0ea5e9;

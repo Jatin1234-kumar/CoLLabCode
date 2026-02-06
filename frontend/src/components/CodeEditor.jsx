@@ -41,6 +41,7 @@ export default function CodeEditor({ socket, roomId }) {
   const editorRef = useRef(null);
   const viewRef = useRef(null);
   const debounceTimerRef = useRef(null);
+  const isRemoteUpdateRef = useRef(false);
 
   const { code, language, setCode } = useRoomStore();
   const { isReadOnly, setCursor } = useEditorStore();
@@ -65,6 +66,12 @@ export default function CodeEditor({ socket, roomId }) {
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
             const newCode = update.state.doc.toString();
+
+            if (isRemoteUpdateRef.current) {
+              isRemoteUpdateRef.current = false;
+              return;
+            }
+
             setCode(newCode);
 
             if (socket) {
@@ -110,6 +117,7 @@ export default function CodeEditor({ socket, roomId }) {
     const currentDoc = viewRef.current.state.doc.toString();
     if (currentDoc === code) return;
 
+    isRemoteUpdateRef.current = true;
     viewRef.current.dispatch({
       changes: {
         from: 0,

@@ -4,7 +4,7 @@ export const useEditorStore = create((set) => ({
   cursor: { line: 0, ch: 0 },
   remoteCursors: {},
   isReadOnly: false,
-  lastSyncTime: Date.now(),
+  lastSyncTime: 0,
 
   setCursor: (cursor) => set({ cursor }),
   setRemoteCursor: (userId, position) =>

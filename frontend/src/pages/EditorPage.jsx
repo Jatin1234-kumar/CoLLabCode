@@ -13,6 +13,7 @@ import VersionHistory from '../components/VersionHistory.jsx';
 import JoinRequestsPanel from '../components/JoinRequestsPanel.jsx';
 import OutputPanel from '../components/OutputPanel.jsx';
 import JoinRoomModal from '../components/JoinRoomModal.jsx';
+import Toast from '../components/Toast.jsx';
 import '../styles/editor.css';
 
 export default function EditorPage() {
@@ -20,7 +21,7 @@ export default function EditorPage() {
   const navigate = useNavigate();
   const { token, user } = useAuthStore();
   const { currentRoom, code, language, setCurrentRoom, setCode, setLanguage, setParticipants, setReadOnly } = useRoomStore();
-  const { setReadOnly: setEditorReadOnly } = useEditorStore();
+  const { setReadOnly: setEditorReadOnly, lastSyncTime, setLastSyncTime } = useEditorStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [socket, setSocket] = useState(null);
@@ -33,6 +34,7 @@ export default function EditorPage() {
   const [isParticipant, setIsParticipant] = useState(null); // null = not checked yet
   const [joinRequestPending, setJoinRequestPending] = useState(false);
   const [showJoinRequests, setShowJoinRequests] = useState(false);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     if (!token) {
@@ -50,22 +52,33 @@ export default function EditorPage() {
   // Initialize socket only after we know user status
   useEffect(() => {
     console.log('🔄 EditorPage: Socket effect triggered. isParticipant:', isParticipant, 'socket:', !!socket);
-    
-    if (isParticipant === true && !socket) {
+
+    if (isParticipant === true) {
       console.log('✅ EditorPage: User is participant, initializing socket');
       console.log('📊 EditorPage: Creating participant socket with token:', token ? '***' : 'NO TOKEN');
-      initializeSocket();
-    } else if (isParticipant === false && !socket) {
+      const newSocket = initSocket(token);
+      setSocket(newSocket);
+      initializeSocket(newSocket);
+    } else if (isParticipant === false) {
       console.log('⏳ EditorPage: User is NOT participant, setting up join:approved listener');
       // Non-participants also need socket connection to receive join:approved event
       const newSocket = initSocket(token);
       console.log('📊 EditorPage: Created non-participant socket. ID:', newSocket.id, 'Connected:', newSocket.connected);
       setSocket(newSocket);
 
+      newSocket.off('join:approved');
+      newSocket.off('room:deleted');
+
       // Listen for join approval (for requester)
       newSocket.on('join:approved', (data) => {
         console.log('✅ EditorPage: Join request approved!', data);
         console.log('📊 EditorPage: Socket listeners count before cleanup:', Object.keys(newSocket._events || {}).length);
+        
+        // Show success notification
+        setToast({
+          message: `Your join request for "${data.roomName}" has been approved! 🎉`,
+          type: 'success'
+        });
         
         // Clean up the socket completely
         newSocket.removeAllListeners();
@@ -103,14 +116,19 @@ export default function EditorPage() {
         }
       }
     };
-  }, [isParticipant]);
+  }, [isParticipant, token, navigate]);
 
   const fetchRoom = async () => {
     try {
       const response = await getRoom(roomId);
       const room = response.data.data;
       setCurrentRoom(room);
-      setCode(room.code);
+
+      const roomLastModified = room.lastModified ? new Date(room.lastModified).getTime() : 0;
+      if (!lastSyncTime || roomLastModified >= lastSyncTime) {
+        setCode(room.code);
+        setLastSyncTime(roomLastModified);
+      }
       setLanguage(room.language);
       setParticipants(room.participants);
 
@@ -190,10 +208,21 @@ export default function EditorPage() {
     }
   };
 
-  const initializeSocket = async () => {
+  const initializeSocket = async (existingSocket = null) => {
     console.log('🔌 EditorPage: Initializing socket for participant');
-    const newSocket = initSocket(token);
+    const newSocket = existingSocket || initSocket(token);
     setSocket(newSocket);
+
+    newSocket.off('code:updated');
+    newSocket.off('code:restored');
+    newSocket.off('user:joined');
+    newSocket.off('user:left');
+    newSocket.off('participant:left');
+    newSocket.off('participant:role-updated');
+    newSocket.off('my:role-changed');
+    newSocket.off('join:request');
+    newSocket.off('room:deleted');
+    newSocket.off('version:saved');
 
     // Join room via socket
     newSocket.emit('room:join', { roomId }, (response) => {
@@ -217,6 +246,9 @@ export default function EditorPage() {
       console.log('📊 EditorPage: Code update data:', { codeLength: data.code?.length, userId: data.userId, username: data.username });
       console.log('📊 EditorPage: Current socket ID:', newSocket.id, 'Socket rooms:', Object.keys(newSocket.adapter?.rooms || {}));
       setCode(data.code);
+      if (data.timestamp) {
+        setLastSyncTime(data.timestamp);
+      }
     });
     newSocket.on('code:restored', (data) => {
       console.log('↩️ EditorPage: Code restored from version');
@@ -231,6 +263,28 @@ export default function EditorPage() {
     // Listen for user left
     newSocket.on('user:left', (data) => {
       console.log(`👋 EditorPage: ${data.username} left`);
+    });
+
+    // Listen for participant leaving (notification for owner)
+    newSocket.on('participant:left', (data) => {
+      console.log('🚪 EditorPage: Participant left:', data);
+      
+      // Show notification to owner
+      if (data.userName) {
+        setToast({
+          message: `${data.userName} left the room`,
+          type: 'info'
+        });
+      }
+      
+      // Update participants list
+      setParticipants((prev) => prev.filter((p) => {
+        const pUserId = typeof p.userId === 'object' ? p.userId._id : p.userId;
+        return pUserId !== data.userId;
+      }));
+      
+      // Refetch to get updated room data
+      fetchRoom();
     });
 
     // Listen for participant role changes (for everyone in room)
@@ -294,7 +348,14 @@ export default function EditorPage() {
           <button onClick={() => navigate('/dashboard')} className="back-btn">
             ← Back
           </button>
-          <h1>{currentRoom?.name}</h1>
+          <div className="room-info">
+            <h1>{currentRoom?.name}</h1>
+            {currentRoom && (typeof currentRoom.owner === 'object' ? currentRoom.owner._id : currentRoom.owner) === user?.id && currentRoom.roomCode && (
+              <span className="room-code-display" title="Share this code with others to invite them">
+                🔑 Code: <span className="code-value">{currentRoom.roomCode}</span>
+              </span>
+            )}
+          </div>
         </div>
         <div className="header-right">
           {currentRoom && (typeof currentRoom.owner === 'object' ? currentRoom.owner._id : currentRoom.owner) === user?.id && (
@@ -375,6 +436,15 @@ export default function EditorPage() {
           roomId={roomId}
           onRequestHandled={fetchRoom}
           onClose={() => setShowJoinRequests(false)}
+        />
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={5000}
         />
       )}
     </div>

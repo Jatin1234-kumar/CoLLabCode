@@ -7,6 +7,7 @@ import {
   deleteRoom,
   getRoomVersions,
   leaveRoom,
+  getRoomByCode,
 } from '../controllers/roomController.js';
 import {
   requestJoinRoom,
@@ -23,6 +24,7 @@ const router = express.Router();
 // Room routes
 router.post('/', protect, createRoom);
 router.get('/', protect, getAllRooms);
+router.get('/code/:code', protect, getRoomByCode); // Must be before /:id
 router.get('/:id', protect, getRoom);
 router.delete('/:id', protect, deleteRoom);
 router.get('/:id/versions', protect, getRoomVersions);

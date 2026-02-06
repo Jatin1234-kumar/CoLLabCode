@@ -187,19 +187,9 @@ export const setupSocketHandlers = (io, socket) => {
         );
       }
 
-      if (
-        room.lastModified &&
-        timestamp &&
-        timestamp < room.lastModified.getTime()
-      ) {
-        return safeCallback(
-          callback,
-          socketResponse(false, ERROR_CODES.STALE_UPDATE, 'Stale update')
-        );
-      }
-
+      const serverTimestamp = Date.now();
       room.code = code;
-      room.lastModified = new Date(timestamp || Date.now());
+      room.lastModified = new Date(serverTimestamp);
 
       if (roomDebounceTimers.has(roomId)) {
         clearTimeout(roomDebounceTimers.get(roomId));
@@ -211,12 +201,12 @@ export const setupSocketHandlers = (io, socket) => {
       );
 
       console.log('📡 Backend: Broadcasting code:updated to room:', roomId);
-      console.log('📊 Backend: Broadcasting data:', { codeLength: code.length, userId, timestamp: room.lastModified.getTime() });
+      console.log('📊 Backend: Broadcasting data:', { codeLength: code.length, userId, timestamp: serverTimestamp });
       emitToRoom(io, roomId, 'code:updated', {
         code,
         userId: socket.user.id,
         username: socket.user.username,
-        timestamp: room.lastModified.getTime(),
+        timestamp: serverTimestamp,
       });
 
       safeCallback(callback, socketResponse(true));
