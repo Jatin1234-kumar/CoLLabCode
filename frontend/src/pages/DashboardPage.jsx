@@ -21,6 +21,7 @@ export default function DashboardPage() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [error, setError] = useState('');
   const [toast, setToast] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (!token) {
@@ -64,17 +65,17 @@ export default function DashboardPage() {
         type: 'success'
       });
       // Refresh rooms to show the newly joined room
+      fetchRooms();
+    });
 
-          // Listen for participant leaving (notification for owner)
-          socket.on('participant:left', (data) => {
-            console.log('🚪 Dashboard: Participant left:', data);
-            setToast({
-              message: `${data.userName} left "${data.roomName}"`,
-              type: 'info'
-            });
-            // Refresh rooms to get updated participant count
-            fetchRooms();
-          });
+    // Listen for participant leaving (notification for owner)
+    socket.on('participant:left', (data) => {
+      console.log('🚪 Dashboard: Participant left:', data);
+      setToast({
+        message: `${data.userName} left "${data.roomName}"`,
+        type: 'info'
+      });
+      // Refresh rooms to get updated participant count
       fetchRooms();
     });
 
@@ -184,6 +185,18 @@ export default function DashboardPage() {
     }
   };
 
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const exactMatches = normalizedQuery
+    ? (rooms || []).filter((room) => room.name?.toLowerCase() === normalizedQuery)
+    : [];
+  const partialMatches = normalizedQuery
+    ? (rooms || []).filter((room) => room.name?.toLowerCase().includes(normalizedQuery))
+    : [];
+  const showExactMatches = normalizedQuery && exactMatches.length > 0;
+  const filteredRooms = normalizedQuery
+    ? (showExactMatches ? exactMatches : partialMatches)
+    : rooms;
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
@@ -211,17 +224,45 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        <div className="search-bar">
+          <input
+            type="text"
+            placeholder="Search rooms by name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="search-input"
+          />
+          {searchQuery && (
+            <button
+              className="clear-search-btn"
+              onClick={() => setSearchQuery('')}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        {normalizedQuery && !showExactMatches && partialMatches.length > 0 && (
+          <div className="search-hint">
+            No exact match found. Showing similar rooms.
+          </div>
+        )}
+
         {error && <div className="error-message">{error}</div>}
 
         {isLoading ? (
           <div className="loading">Loading rooms...</div>
-        ) : !Array.isArray(rooms) || rooms.length === 0 ? (
+        ) : !Array.isArray(filteredRooms) || filteredRooms.length === 0 ? (
           <div className="empty-state">
-            <p>No rooms yet. Create one to get started!</p>
+            <p>
+              {normalizedQuery
+                ? 'No rooms found for your search.'
+                : 'No rooms yet. Create one to get started!'}
+            </p>
           </div>
         ) : (
           <div className="rooms-grid">
-            {rooms.map((room) => (
+            {filteredRooms.map((room) => (
               <RoomCard 
                 key={room._id} 
                 room={room} 
