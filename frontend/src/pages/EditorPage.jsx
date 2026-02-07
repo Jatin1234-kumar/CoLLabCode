@@ -215,8 +215,10 @@ export default function EditorPage() {
 
     newSocket.off('code:updated');
     newSocket.off('code:restored');
+    newSocket.off('cursor:updated');
     newSocket.off('user:joined');
     newSocket.off('user:left');
+    newSocket.off('user:disconnected');
     newSocket.off('participant:left');
     newSocket.off('participant:role-updated');
     newSocket.off('my:role-changed');
@@ -325,6 +327,9 @@ export default function EditorPage() {
     newSocket.on('version:saved', (data) => {
       console.log('💾 EditorPage: Version saved:', data);
     });
+
+    // Note: cursor updates and user disconnected events are handled in CodeEditor component
+    // They update the remoteCursors state in real-time
   };
 
   if (loading || isParticipant === null) {
@@ -391,7 +396,7 @@ export default function EditorPage() {
 
       <div className="editor-body">
         <div className="editor-main">
-          <CodeEditor socket={socket} roomId={roomId} />
+          <CodeEditor socket={socket} roomId={roomId} currentUserId={user?.id} />
         </div>
 
         <aside className="editor-sidebar">

@@ -10,10 +10,11 @@ import Room from '../models/Room.js';
 import Version from '../models/Version.js';
 
 const DEBOUNCE_DELAY = 500;
-const CURSOR_THROTTLE_DELAY = 100;
+const CURSOR_THROTTLE_DELAY = 50; // Reduced from 100ms to 50ms for lower latency
 
 const roomDebounceTimers = new Map();
 const roomLastCursorUpdate = new Map();
+const roomTypingUsers = new Map(); // Track who is typing in each room
 
 /* ------------------ helpers ------------------ */
 const safeCallback = (callback, payload) => {
@@ -210,6 +211,54 @@ export const setupSocketHandlers = (io, socket) => {
   });
 
   /* ===== CURSOR ===== */
+
+  socket.on('typing:start', (data) => {
+    try {
+      const { roomId } = data;
+      const userId = socket.userId.toString();
+
+      const key = `${roomId}`;
+      if (!roomTypingUsers.has(key)) {
+        roomTypingUsers.set(key, new Set());
+      }
+      
+      const typingSet = roomTypingUsers.get(key);
+      typingSet.add(userId);
+
+      // Broadcast typing state to all users in room
+      socket.to(`room:${roomId}`).emit('user:typing:started', {
+        userId: socket.user.id,
+        username: socket.user.username,
+      });
+
+      console.log(`✍️ User ${socket.user.username} started typing in room ${roomId}`);
+    } catch (err) {
+      console.error('typing:start error:', err);
+    }
+  });
+
+  socket.on('typing:stop', (data) => {
+    try {
+      const { roomId } = data;
+      const userId = socket.userId.toString();
+
+      const key = `${roomId}`;
+      if (roomTypingUsers.has(key)) {
+        const typingSet = roomTypingUsers.get(key);
+        typingSet.delete(userId);
+      }
+
+      // Broadcast typing stop to all users in room
+      socket.to(`room:${roomId}`).emit('user:typing:stopped', {
+        userId: socket.user.id,
+        username: socket.user.username,
+      });
+
+      console.log(`⏸️ User ${socket.user.username} stopped typing in room ${roomId}`);
+    } catch (err) {
+      console.error('typing:stop error:', err);
+    }
+  });
 
   socket.on('cursor:update', async (data, callback) => {
     try {
