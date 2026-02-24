@@ -12,7 +12,7 @@ Built for **low latency**, **strong security**, and **clean developer experience
 
 ---
 
-## ✨ What This Does (Quick Pitch)
+## ✨ What This Does
 
 - 👥 Real-time multi-user code editing
 - 🖱️ Live cursor tracking (Google Docs–style)
@@ -22,8 +22,6 @@ Built for **low latency**, **strong security**, and **clean developer experience
 - 🧠 Intelligent join request system
 - 💾 Full version history with restore
 - ⚡ Built with Socket.io + CodeMirror 6
-
-This isn't a demo toy — it's production-minded.
 
 ---
 
