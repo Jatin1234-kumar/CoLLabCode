@@ -92,7 +92,19 @@ export const runCode = async (req, res) => {
       sendSuccess(res, 200, executionResult, 'Code executed successfully');
     } catch (pistonError) {
       const status = pistonError.response?.status;
-      console.error('Piston API error:', pistonError.message, status ? `(status ${status})` : '');
+      const pistonResponseMessage = String(pistonError.response?.data?.message || '');
+      const whitelistBlocked = pistonResponseMessage.toLowerCase().includes('whitelist only');
+
+      console.error('Piston API error:', pistonError.message, status ? `(status ${status})` : '', pistonResponseMessage || '');
+
+      if (whitelistBlocked) {
+        return sendError(
+          res,
+          503,
+          'Code execution is temporarily unavailable. Public Piston access is whitelist-only. Please contact support or try again after service configuration.',
+          ERROR_CODES.EXECUTION_SERVICE_UNAVAILABLE
+        );
+      }
 
       return sendError(
         res,
