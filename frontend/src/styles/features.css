@@ -1,0 +1,32 @@
+/* ==================== FEATURES PAGE ==================== */
+
+.features-page {
+  background: #080810;
+  min-height: 100vh;
+}
+
+.features-page-body {
+  padding-top: 6rem; /* clear the floating nav */
+  position: relative;
+}
+
+/* Subtle ambient glow behind content */
+.features-page-body::before {
+  content: '';
+  position: fixed;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 600px;
+  background: radial-gradient(ellipse, rgba(102, 126, 234, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.features-page .features-section,
+.features-page .comparison-section,
+.features-page .cta-section {
+  position: relative;
+  z-index: 1;
+}

@@ -5,40 +5,40 @@
 }
 
 :root {
-  --bg-900: #0f1114;
-  --bg-850: #12151a;
-  --bg-800: #151a20;
-  --bg-750: #1a2028;
-  --bg-700: #1f2732;
-  --border-600: #2b3440;
-  --border-500: #3a4656;
-  --text-100: #eef2f6;
-  --text-200: #c9d3dd;
-  --text-300: #97a3b2;
-  --accent-500: #38bdf8;
-  --accent-600: #0ea5e9;
-  --accent-700: #0284c7;
+  --bg-900: #080810;
+  --bg-850: #0d0d18;
+  --bg-800: #111120;
+  --bg-750: #161628;
+  --bg-700: #1c1c30;
+  --border-600: rgba(255, 255, 255, 0.08);
+  --border-500: rgba(255, 255, 255, 0.14);
+  --text-100: #ffffff;
+  --text-200: #d0d0e8;
+  --text-300: rgba(255, 255, 255, 0.5);
+  --accent-500: #667eea;
+  --accent-600: #764ba2;
+  --accent-700: #5a3d8a;
   --success-500: #22c55e;
   --warning-500: #f59e0b;
   --danger-500: #ef4444;
-  --shadow-1: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --shadow-1: 0 10px 40px rgba(0, 0, 0, 0.6);
 }
 
 body {
   font-family: 'IBM Plex Sans', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--bg-900);
+  background-color: #080810;
   background-image:
-    radial-gradient(1200px 600px at 15% 10%, rgba(56, 189, 248, 0.08), transparent 60%),
-    radial-gradient(900px 500px at 85% 20%, rgba(14, 165, 233, 0.06), transparent 60%),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0, rgba(255, 255, 255, 0.03) 1px, transparent 1px, transparent 12px);
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(102, 126, 234, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(118, 75, 162, 0.06) 0%, transparent 60%);
   color: var(--text-100);
 }
 
 html, body, #root {
   height: 100%;
   width: 100%;
+  overflow: hidden;
 }
 
 button {
@@ -72,6 +72,7 @@ input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--accent-600);
   background: var(--bg-750);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
 }
 
 a {

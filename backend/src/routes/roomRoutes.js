@@ -8,6 +8,10 @@ import {
   getRoomVersions,
   leaveRoom,
   getRoomByCode,
+  getRoomFiles,
+  createFile,
+  updateFile,
+  deleteFile,
 } from '../controllers/roomController.js';
 import {
   requestJoinRoom,
@@ -40,6 +44,12 @@ router.post('/:id/join-request/:requestId/reject', protect, rejectJoinRequest);
 // Participant management routes
 router.patch('/:id/participants/:userId/role', protect, updateParticipantRole);
 router.post('/:id/transfer-ownership', protect, transferOwnership);
+
+// File system routes
+router.get('/:id/files', protect, getRoomFiles);
+router.post('/:id/files', protect, createFile);
+router.patch('/:id/files/:fileId', protect, updateFile);
+router.delete('/:id/files/:fileId', protect, deleteFile);
 
 // Debug endpoint to test Gemini API key (shows available models)
 router.get('/test/gemini-api', protect, async (req, res) => {

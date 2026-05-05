@@ -210,6 +210,49 @@ export const setupSocketHandlers = (io, socket) => {
     }
   });
 
+  /* ===== FILE SYNC ===== */
+
+  socket.on('file:update', async (data, callback) => {
+    try {
+      const { roomId, fileId, content } = data;
+      const userId = socket.userId.toString();
+
+      if (!roomId || !fileId || content === undefined) {
+        return safeCallback(callback, socketResponse(false, ERROR_CODES.VALIDATION_ERROR, 'Invalid data'));
+      }
+
+      const room = await Room.findById(roomId);
+      if (!room) return safeCallback(callback, socketResponse(false, ERROR_CODES.ROOM_NOT_FOUND, 'Room not found'));
+      if (!isApprovedParticipant(room, userId))
+        return safeCallback(callback, socketResponse(false, ERROR_CODES.ACCESS_DENIED, 'Not authorized'));
+      if (getUserRoleInRoom(room, userId) === USER_ROLES.VIEWER)
+        return safeCallback(callback, socketResponse(false, ERROR_CODES.INSUFFICIENT_PERMISSIONS, 'Viewers cannot edit'));
+
+      const file = room.files.find(f => f.id === fileId);
+      if (!file) return safeCallback(callback, socketResponse(false, ERROR_CODES.NOT_FOUND, 'File not found'));
+
+      file.content = content;
+      room.lastModified = new Date();
+
+      const timerKey = `${roomId}:${fileId}`;
+      if (roomDebounceTimers.has(timerKey)) clearTimeout(roomDebounceTimers.get(timerKey));
+      roomDebounceTimers.set(timerKey, setTimeout(() => room.save(), DEBOUNCE_DELAY));
+
+      socket.to(`room:${roomId}`).emit('file:updated', {
+        fileId,
+        content,
+        userId: socket.user.id,
+        username: socket.user.username,
+        timestamp: Date.now(),
+      });
+
+      safeCallback(callback, socketResponse(true));
+    } catch (err) {
+      console.error('file:update error:', err);
+      safeCallback(callback, socketResponse(false, ERROR_CODES.INTERNAL_SERVER_ERROR, 'Update failed'));
+    }
+  });
+
   /* ===== CURSOR ===== */
 
   socket.on('typing:start', (data) => {

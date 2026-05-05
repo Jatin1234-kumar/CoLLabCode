@@ -1,12 +1,13 @@
 .code-editor-wrapper {
   position: relative;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   width: 100%;
   overflow: hidden;
 }
 
 .code-editor {
-  background: #11161c;
+  background: #0d1117;
   color: #e6edf3;
   font-family: 'JetBrains Mono', 'SFMono-Regular', 'Menlo', 'Monaco', monospace;
   font-size: 14px;

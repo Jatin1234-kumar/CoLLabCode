@@ -41,6 +41,12 @@ export const approveJoinRequest = (roomId, requestId, overrideRole = null) =>
 export const rejectJoinRequest = (roomId, requestId) =>
   apiClient.post(`/rooms/${roomId}/join-request/${requestId}/reject`);
 
+// File system endpoints
+export const getRoomFiles = (roomId) => apiClient.get(`/rooms/${roomId}/files`);
+export const createRoomFile = (roomId, data) => apiClient.post(`/rooms/${roomId}/files`, data);
+export const updateRoomFile = (roomId, fileId, data) => apiClient.patch(`/rooms/${roomId}/files/${fileId}`, data);
+export const deleteRoomFile = (roomId, fileId) => apiClient.delete(`/rooms/${roomId}/files/${fileId}`);
+
 // Participant endpoints
 export const updateParticipantRole = (roomId, userId, newRole) =>
   apiClient.patch(`/rooms/${roomId}/participants/${userId}/role`, { newRole });

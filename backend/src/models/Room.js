@@ -73,6 +73,17 @@ const roomSchema = new mongoose.Schema(
         },
       },
     ],
+    files: [
+      {
+        id: { type: String, required: true },
+        name: { type: String, required: true },
+        path: { type: String, required: true },
+        content: { type: String, default: '' },
+        language: { type: String, default: 'javascript' },
+        isFolder: { type: Boolean, default: false },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
     lastModified: {
       type: Date,
       default: Date.now,

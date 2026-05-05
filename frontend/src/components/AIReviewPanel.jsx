@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { requestAiReview } from '../services/api.js';
 
-export default function AIReviewPanel({ roomId, code, canUse }) {
+export default function AIReviewPanel({ roomId, code, canUse, compact }) {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -51,11 +51,39 @@ export default function AIReviewPanel({ roomId, code, canUse }) {
   };
 
   if (!canUse) {
+    return <div className={compact ? 'ai-locked' : 'ai-panel-locked'}>Editor or owner access required.</div>;
+  }
+
+  if (compact) {
     return (
-      <div className="ai-panel">
-        <div className="ai-panel-header">AI Code Review</div>
-        <div className="ai-panel-locked">
-          You need editor or owner access to use the AI reviewer.
+      <div>
+        <button
+          className="ai-review-btn"
+          onClick={() => sendMessage('Review my code and suggest improvements.')}
+          disabled={loading}
+        >
+          {loading ? '⏳ Reviewing...' : '🔍 Request full Review'}
+        </button>
+        <div className="ai-messages-new">
+          {messages.map((msg, i) => (
+            <div key={i} className={`ai-msg ${msg.role}`}>
+              <div className="ai-msg-role">{msg.role === 'assistant' ? 'AI' : 'You'}</div>
+              {msg.content}
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+        <div className="ai-input-row">
+          <textarea
+            placeholder="Ask about your code..."
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            rows={2}
+          />
+          <button className="ai-send-btn" onClick={() => sendMessage()} disabled={loading}>
+            {loading ? 'Sending...' : 'Send'}
+          </button>
         </div>
       </div>
     );
@@ -65,39 +93,22 @@ export default function AIReviewPanel({ roomId, code, canUse }) {
     <div className="ai-panel">
       <div className="ai-panel-header">
         <span>AI Code Review</span>
-        <button
-          className="ai-quick-review"
-          onClick={() => sendMessage('Review my code and suggest improvements.')}
-          disabled={loading}
-          type="button"
-        >
+        <button className="ai-quick-review" onClick={() => sendMessage('Review my code and suggest improvements.')} disabled={loading}>
           {loading ? 'Reviewing...' : 'Quick Review'}
         </button>
       </div>
-
       <div className="ai-messages">
         {messages.map((msg, index) => (
           <div key={index} className={`ai-message ${msg.role}`}>
-            <div className="ai-message-role">
-              {msg.role === 'assistant' ? 'AI' : 'You'}
-            </div>
+            <div className="ai-message-role">{msg.role === 'assistant' ? 'AI' : 'You'}</div>
             <div className="ai-message-content">{msg.content}</div>
           </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
-
       <div className="ai-input">
-        <textarea
-          placeholder="Ask for a review or ask about your code..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          rows={3}
-        />
-        <button onClick={() => sendMessage()} disabled={loading} type="button">
-          {loading ? 'Sending...' : 'Send'}
-        </button>
+        <textarea placeholder="Ask for a review..." value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} rows={3} />
+        <button onClick={() => sendMessage()} disabled={loading}>{loading ? 'Sending...' : 'Send'}</button>
       </div>
     </div>
   );
